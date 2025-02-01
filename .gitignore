@@ -1,2 +1,5 @@
 llmUI/models/*.gguf
 
+llmUI/lib/
+llmUI/bin/
+llmUI/lib64/
