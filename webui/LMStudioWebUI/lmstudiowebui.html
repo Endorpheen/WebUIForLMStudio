@@ -255,28 +255,43 @@ function addMessage(content, isUser, metrics = null) {
     }
 
     // Если сообщение от ассистента, добавляем кнопку "Перевести"
-    if (!isUser) {
-        const translateButton = document.createElement('button');
-        translateButton.textContent = 'Перевести';
-        translateButton.style.marginTop = '0.5rem';
-        translateButton.style.padding = '0.3rem 0.5rem';
-        translateButton.style.fontSize = '0.8rem';
-        translateButton.style.cursor = 'pointer';
+if (!isUser) {
+    const translateButton = document.createElement('button');
+    translateButton.textContent = 'Перевести';
+    translateButton.style.marginTop = '0.5rem';
+    translateButton.style.padding = '0.3rem 0.5rem';
+    translateButton.style.fontSize = '0.8rem';
+    translateButton.style.cursor = 'pointer';
 
-        translateButton.addEventListener('click', async () => {
+    // Сохраняем исходный текст в data-атрибуте
+    contentDiv.dataset.original = content;
+    let isTranslated = false;
+
+    translateButton.addEventListener('click', async () => {
+        if (!isTranslated) {
+            // Выполняем перевод, если текст ещё не переведён
             translateButton.disabled = true;
             translateButton.textContent = 'Переводится...';
             const translatedText = await translateMessage(content);
             if (translatedText) {
                 contentDiv.innerText = translatedText;
-                translateButton.textContent = 'Переведено';
+                translateButton.textContent = 'Показать оригинал';
+                isTranslated = true;
             } else {
                 translateButton.textContent = 'Ошибка перевода';
             }
-        });
+            translateButton.disabled = false;
+        } else {
+            // Если текст переведён, возвращаем исходный вариант
+            contentDiv.innerText = contentDiv.dataset.original;
+            translateButton.textContent = 'Перевести';
+            isTranslated = false;
+        }
+    });
 
-        messageDiv.appendChild(translateButton);
-    }
+    messageDiv.appendChild(translateButton);
+}
+
 
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
