@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>LM Studio Chat</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
   <style>
     :root {
       --background-color: #1e1e1e;
@@ -203,41 +206,56 @@
     let isConnected = false;
     let currentModel = '';
 
-    // Функция для добавления сообщения в чат с кнопкой "Перевести" для сообщений ассистента
-    function addMessage(content, isUser, metrics = null) {
-      const messageDiv = document.createElement('div');
-      messageDiv.classList.add('message', isUser ? 'user-message' : 'assistant-message');
+  // Функция для добавления сообщения в чат с кнопкой "Перевести" для сообщений ассистента
+function addMessage(content, isUser, metrics = null) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', isUser ? 'user-message' : 'assistant-message');
 
-      // Заголовок сообщения
-      const headerDiv = document.createElement('div');
-      headerDiv.classList.add('message-header');
-      headerDiv.textContent = isUser ? 'You' : 'Assistant';
-      messageDiv.appendChild(headerDiv);
+    // Заголовок сообщения
+    const headerDiv = document.createElement('div');
+    headerDiv.classList.add('message-header');
+    headerDiv.textContent = isUser ? 'You' : 'Assistant';
+    messageDiv.appendChild(headerDiv);
 
-      // Если сообщение от ассистента, можно добавить информацию о модели
-      if (!isUser && currentModel) {
+    // Если сообщение от ассистента, можно добавить информацию о модели
+    if (!isUser && currentModel) {
         const modelDiv = document.createElement('div');
         modelDiv.classList.add('message-model');
         modelDiv.textContent = currentModel;
         messageDiv.appendChild(modelDiv);
-      }
+    }
 
-      // Контейнер для текста сообщения
-      const contentDiv = document.createElement('div');
-      contentDiv.classList.add('message-content');
-      contentDiv.textContent = content;
-      messageDiv.appendChild(contentDiv);
+    // Контейнер для текста сообщения (возвращаем div, чтобы не ломался стиль)
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content');
+    contentDiv.innerHTML = marked.parse(content);
 
-      // Если переданы метрики, добавляем их
-      if (metrics) {
+    messageDiv.appendChild(contentDiv);
+
+    // Если переданы метрики, добавляем их
+    if (metrics) {
         const metricsDiv = document.createElement('div');
         metricsDiv.classList.add('message-metrics');
         metricsDiv.textContent = metrics;
         messageDiv.appendChild(metricsDiv);
-      }
+    }
 
-      // Если сообщение от ассистента, добавляем кнопку "Перевести"
-      if (!isUser) {
+    // Если сообщение от ассистента длинное, добавляем кнопку "Показать полностью"
+    if (!isUser && content.length > 500) {
+        const expandButton = document.createElement('button');
+        expandButton.textContent = 'Показать полностью';
+        expandButton.style.marginTop = '0.5rem';
+        expandButton.onclick = () => {
+            contentDiv.style.maxHeight = 'none';
+            expandButton.remove();
+        };
+        messageDiv.appendChild(expandButton);
+        contentDiv.style.maxHeight = '200px';
+        contentDiv.style.overflow = 'hidden';
+    }
+
+    // Если сообщение от ассистента, добавляем кнопку "Перевести"
+    if (!isUser) {
         const translateButton = document.createElement('button');
         translateButton.textContent = 'Перевести';
         translateButton.style.marginTop = '0.5rem';
@@ -246,23 +264,25 @@
         translateButton.style.cursor = 'pointer';
 
         translateButton.addEventListener('click', async () => {
-          translateButton.disabled = true;
-          translateButton.textContent = 'Переводится...';
-          const translatedText = await translateMessage(content);
-          if (translatedText) {
-            contentDiv.textContent = translatedText;
-            translateButton.textContent = 'Переведено';
-          } else {
-            translateButton.textContent = 'Ошибка перевода';
-          }
+            translateButton.disabled = true;
+            translateButton.textContent = 'Переводится...';
+            const translatedText = await translateMessage(content);
+            if (translatedText) {
+                contentDiv.innerText = translatedText;
+                translateButton.textContent = 'Переведено';
+            } else {
+                translateButton.textContent = 'Ошибка перевода';
+            }
         });
 
         messageDiv.appendChild(translateButton);
-      }
-
-      chatContainer.appendChild(messageDiv);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
     }
+
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+
 
     // Функция для подключения к LM Studio серверу
     async function connectToServer() {
@@ -356,7 +376,9 @@
 
           const data = await response.json();
           const endTime = performance.now();
-          const botReply = data.choices[0].message.content;
+          console.log(data);
+          const botReply = data.choices.map(choice => choice.message.content).join("\n");
+
           const totalTokens = data.usage.total_tokens;
           const timeElapsed = ((endTime - startTime) / 1000).toFixed(2);
           const stopReason = data.choices[0].finish_reason === 'stop' ? 'eosFound' : data.choices[0].finish_reason;

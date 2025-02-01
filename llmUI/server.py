@@ -58,7 +58,7 @@ def get_model_instance(model_id: str, model_path: str) -> Llama:
         return loaded_models[model_id]
     try:
         # Настройте параметр n_ctx и другие параметры в зависимости от вашей модели
-        instance = Llama(model_path=model_path, n_ctx=512)
+        instance = Llama(model_path=model_path, n_ctx=2048)
         loaded_models[model_id] = instance
         return instance
     except Exception as e:
@@ -131,7 +131,7 @@ def chat_completions(req: ChatRequest):
         start_time = time.time()
         result = llm_instance(
             prompt=prompt,
-            max_tokens=req.max_tokens if req.max_tokens > 0 else 100,
+            max_tokens=req.max_tokens if req.max_tokens > 0 else 2048,
             temperature=req.temperature,
             stop=["\nUser:"]
         )
