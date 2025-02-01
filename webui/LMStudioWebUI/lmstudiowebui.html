@@ -109,6 +109,37 @@
       font-size: 0.7rem;
       color: #888;
     }
+
+    .code-container {
+    position: relative;
+    background-color: #2d2d2d;
+    padding: 1rem;
+    border-radius: 5px;
+    overflow: auto;
+    margin: 1rem 0;
+    }
+    pre {
+    margin: 0;
+    font-family: monospace;
+    color: #fff;
+    }
+    .copy-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: var(--button-color);
+    color: #fff;
+    border: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+    .copy-button:active {
+      background-color: #357ABD;
+    }
+
+
     #input-container {
       padding: 0.5rem;
       background-color: var(--input-background);
@@ -292,6 +323,19 @@ if (!isUser) {
     messageDiv.appendChild(translateButton);
 }
 
+    const copyMsgButton = document.createElement('button');
+            copyMsgButton.textContent = 'Copy Message';
+            copyMsgButton.style.marginTop = '0.5rem';
+            copyMsgButton.style.padding = '0.3rem 0.5rem';
+            copyMsgButton.style.fontSize = '0.8rem';
+            copyMsgButton.style.cursor = 'pointer';
+
+            copyMsgButton.addEventListener('click', () => {
+                const textToCopy = contentDiv.innerText;
+                copyText(copyMsgButton, textToCopy);
+            });
+
+            messageDiv.appendChild(copyMsgButton);
 
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -411,6 +455,21 @@ if (!isUser) {
         }
       }
     }
+
+    function copyText(button, textToCopy) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const originalText = button.innerText;
+        button.innerText = "Copied!";
+        setTimeout(() => {
+          button.innerText = originalText;
+        }, 2000);
+      }).catch(err => {
+        console.error("Ошибка копирования: ", err);
+      });
+    }
+
+
+
 
     // Функция отправки запроса на перевод сообщения
     async function translateMessage(text) {
