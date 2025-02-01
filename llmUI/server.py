@@ -155,19 +155,51 @@ def chat_completions(req: ChatRequest):
         usage=ChatResponseUsage(total_tokens=total_tokens)
     )
 
+def split_text(text, max_length=500):
+    """
+    Разбивает текст на части, чтобы каждая часть была не длиннее max_length.
+    Деление происходит по предложениям.
+    """
+    sentences = text.split('. ')
+    chunks = []
+    current_chunk = ""
+    for sentence in sentences:
+        # Добавляем точку обратно, если предложение непустое
+        sentence = sentence.strip()
+        if sentence:
+            sentence += "."
+        if len(current_chunk) + len(sentence) + 1 <= max_length:
+            current_chunk += sentence + " "
+        else:
+            chunks.append(current_chunk.strip())
+            current_chunk = sentence + " "
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+    return chunks
+
 @app.post("/v1/translate")
 def translate(req: TranslateRequest):
     """
     Эндпоинт для перевода текста.
-    Используется deep-translator (GoogleTranslator) для перевода на указанный язык.
+    Если текст слишком длинный, разбивает его на части и переводит каждую отдельно.
     """
     try:
-        # Если targetLang не указан, переводим на русский ('ru')
         dest_lang = req.targetLang if req.targetLang else 'ru'
-        translated_text = GoogleTranslator(source='auto', target=dest_lang).translate(req.text)
+        # Определяем порог, выше которого текст делим на части
+        MAX_LENGTH = 500
+        if len(req.text) > MAX_LENGTH:
+            chunks = split_text(req.text, MAX_LENGTH)
+            translated_chunks = []
+            for chunk in chunks:
+                translated_chunk = GoogleTranslator(source='auto', target=dest_lang).translate(chunk)
+                translated_chunks.append(translated_chunk)
+            translated_text = " ".join(translated_chunks)
+        else:
+            translated_text = GoogleTranslator(source='auto', target=dest_lang).translate(req.text)
         return TranslateResponse(translatedText=translated_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Translation failed: {e}")
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=3005)
